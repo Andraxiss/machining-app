@@ -24,6 +24,9 @@ public class Program {
   @NotEmpty
   private String name;
 
+  @NotEmpty
+  private String programNumber;
+
   @OneToMany(mappedBy = "program", fetch = FetchType.EAGER)
   private List<Step> steps = new ArrayList<>();
 
@@ -60,5 +63,13 @@ public class Program {
 
   public void setSteps(List<Step> steps) {
     this.steps = steps;
+  }
+
+  public String getProgramNumber() {
+    return programNumber;
+  }
+
+  public void setProgramNumber(String programNumber) {
+    this.programNumber = programNumber;
   }
 }

@@ -6,20 +6,19 @@ import com.loica.machiningapp.domain.service.MachineService;
 import com.loica.machiningapp.domain.service.TemplateService;
 import com.loica.machiningapp.view.utils.MachineFinder;
 import com.loica.machiningapp.view.utils.NotificationGreen;
+import com.loica.machiningapp.view.utils.NotificationRed;
 import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.BeanValidationBinder;
-import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -40,47 +39,48 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
   private final MachineService machineService;
   private final TemplateService templateService;
 
-  MachineFinder machine;
+  TextField machine = new TextField();
   TextField name = new TextField();
   TextArea content = new TextArea();
 
   private Template template;
-  Binder<Template> binder = new BeanValidationBinder<>(Template.class);
 
   private String notificationKey = "template-created";
 
   public TemplateView(MachineService machineService, TemplateService templateService) {
     this.machineService = machineService;
     this.templateService = templateService;
+  }
 
-    this.template = new Template();
-    this.machine = new MachineFinder(machineService.getMachines());
-    binder.bindInstanceFields(this);
-
-
-    Button btnCreateMachine = new Button("Créer une machine");
-    btnCreateMachine.addClickListener(e -> createMachine());
-    btnCreateMachine.setClassName("btn-machine");
+  private void generateView() {
+    this.machine.setLabel("Machine");
+    this.machine.setReadOnly(true);
+    this.machine.setValue(template.getMachine().getName());
 
     content.setLabel("Contenu");
     content.setWidthFull();
     content.setHeight(50, Unit.VH);
+    if (template.getContent() != null){
+      content.setValue(template.getContent());
+    }
+
+    name.setValue(template.getName());
 
     H1 title = new H1();
     title.setText("Gestion des modèles");
     title.setClassName("title");
 
-    add(title, createTopSection(), btnCreateMachine, content, createButtons());
+    add(title, createTopSection(), content, createButtons());
   }
 
   private HorizontalLayout createTopSection() {
-    machine.setWidth(300,Unit.PIXELS);
+    machine.setWidth(300, Unit.PIXELS);
 
     name.setLabel("Nom du modèle");
     name.setRequired(true);
     name.setRequiredIndicatorVisible(true);
     name.setErrorMessage("Ce champ est obligatoire");
-    name.setWidth(300,Unit.PIXELS);
+    name.setWidth(300, Unit.PIXELS);
 
     HorizontalLayout horizontalLayout = new HorizontalLayout();
     horizontalLayout.add(machine, name);
@@ -100,27 +100,40 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
     btnSave.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
     btnSave.addClickListener(event -> validateAndSave());
 
+    Button btnDelete = new Button("Supprimer le modèle");
+    btnDelete.addThemeVariants(ButtonVariant.LUMO_ERROR);
+    btnDelete.addClickListener(
+        event -> {
+          this.deleteTemplate(template);
+        });
+
     HorizontalLayout horizontalLayout = new HorizontalLayout();
     horizontalLayout.setJustifyContentMode(JustifyContentMode.END);
     horizontalLayout.setWidthFull();
-    horizontalLayout.add(btnBack, btnSave);
+    horizontalLayout.add(btnBack, btnDelete, btnSave);
     return horizontalLayout;
   }
 
   private void validateAndSave() {
-      if ((this.template == null)) {
-        this.template = new Template();
-      }
+    if ((this.template == null)) {
+      this.template = new Template();
+    }
 
-      binder.forField(machine).bind(Template::getMachine,Template::setMachine);
+    if (!content.isEmpty()) {
+      template.setContent(content.getValue());
+      content.setInvalid(false);
+    } else {
+      content.setInvalid(true);
+    }
 
-      try{
-        binder.writeBean(template);
-      } catch (ValidationException e){
-        System.out.println(e.getValidationErrors());
-      }
+    if (!name.getValue().isEmpty()) {
+      template.setName(name.getValue());
+      name.setInvalid(false);
+    } else {
+      name.setInvalid(true);
+    }
 
-
+    if (!name.isInvalid() && !content.isInvalid() && !machine.isInvalid()) {
       this.templateService.saveTemplate(template);
       this.getUI()
           .ifPresent(
@@ -129,6 +142,7 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
                       "",
                       new QueryParameters(
                           Map.of(this.notificationKey, List.of(template.getName())))));
+    }
   }
 
   private void handleEdit() {
@@ -152,8 +166,8 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
     btnLayout.setWidthFull();
     btnLayout.add(btnBack, btnValidate);
 
-    MachineFinder machineFinder = new MachineFinder(this.machineService.getMachines());
-    machineFinder.setWidthFull();
+    MachineFinder machineFinderEdit = new MachineFinder(this.machineService.getMachines());
+    machineFinderEdit.setWidthFull();
 
     Select<Template> templateToEdit = new Select<>();
     templateToEdit.setWidthFull();
@@ -161,9 +175,10 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
     templateToEdit.setRequiredIndicatorVisible(true);
     templateToEdit.setEnabled(false);
 
-    machineFinder.addValueChangeListener(
+    machineFinderEdit.addValueChangeListener(
         machine -> {
-          List<Template> templates = this.templateService.findByMachine(machineFinder.getValue());
+          List<Template> templates =
+              this.templateService.findByMachine(machineFinderEdit.getValue());
           templateToEdit.setEnabled(true);
           templateToEdit.setItems(templates);
           templateToEdit.setItemLabelGenerator(Template::getName);
@@ -178,13 +193,77 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
     btnValidate.addClickListener(
         e -> {
           this.template = templateToEdit.getValue();
-          binder.readBean(template);
-          this.machine.setValue(template.getMachine());
+          this.machine.setValue(template.getMachine().getName());
+          this.content.setValue(template.getContent());
+          this.name.setValue(template.getName());
+          generateView();
           dialog.close();
         });
 
     VerticalLayout verticalLayout = new VerticalLayout();
-    verticalLayout.add(machineFinder, templateToEdit, btnLayout);
+    verticalLayout.add(machineFinderEdit, templateToEdit, btnLayout);
+    verticalLayout.setWidth(500, Unit.PIXELS);
+
+    dialog.add(verticalLayout);
+    dialog.open();
+  }
+
+  private void handleCreate() {
+    Dialog dialog = new Dialog();
+    dialog.setHeaderTitle("Créer un modèle");
+
+    Button btnValidate = new Button("Valider");
+    btnValidate.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+    btnValidate.setEnabled(false);
+
+    Button btnBack = new Button("Retour");
+    btnBack.addClickListener(
+        e -> {
+          dialog.close();
+          goHome();
+        });
+
+    HorizontalLayout btnLayout = new HorizontalLayout();
+    btnLayout.setJustifyContentMode(JustifyContentMode.END);
+    btnLayout.setWidthFull();
+    btnLayout.add(btnBack, btnValidate);
+
+    MachineFinder machineFinder = new MachineFinder(this.machineService.getMachines());
+    machineFinder.setWidthFull();
+
+    TextField templateName = new TextField();
+
+    templateName.setLabel("Nom du modèle");
+    templateName.setRequiredIndicatorVisible(true);
+    templateName.setValueChangeMode(ValueChangeMode.LAZY);
+    templateName.setValueChangeTimeout(300);
+    templateName.setPlaceholder("Ex: Taraudage");
+    templateName.addValueChangeListener(
+        e -> {
+          if (machineFinder.getValue() != null) {
+            btnValidate.setEnabled(true);
+          }
+        });
+
+    machineFinder.addValueChangeListener(
+        machine -> {
+          if (!templateName.getValue().isEmpty()) {
+            btnValidate.setEnabled(true);
+          }
+        });
+
+    btnValidate.addClickListener(
+        e -> {
+          if (!machineFinder.isEmpty() && templateName.getValue() != null) {
+            this.template.setName(templateName.getValue());
+            this.template.setMachine(machineFinder.getValue());
+            this.generateView();
+            dialog.close();
+          }
+        });
+
+    VerticalLayout verticalLayout = new VerticalLayout();
+    verticalLayout.add(machineFinder, templateName, btnLayout);
     verticalLayout.setWidth(500, Unit.PIXELS);
 
     dialog.add(verticalLayout);
@@ -199,68 +278,32 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
             });
   }
 
-  private void createMachine() {
+  private void deleteTemplate(Template template) {
     Dialog dialog = new Dialog();
-    dialog.setHeaderTitle("Créer une machine");
-    dialog.setWidth(500, Unit.PIXELS);
+    H3 text = new H3("Voulez vous vraiment supprimer le modèle " + template.getName() + "?");
 
-    TextField machineName = new TextField();
-    machineName.setLabel("Nom de la machine");
-    machineName.setRequiredIndicatorVisible(true);
-    machineName.setWidthFull();
-    machineName.setErrorMessage("Le champ ne doit pas être vide");
-    machineName.setValueChangeMode(ValueChangeMode.LAZY);
-    machineName.setValueChangeTimeout(300);
-
-    Button btnValidate = new Button("Valider");
-    btnValidate.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-    btnValidate.setEnabled(false);
-    btnValidate.addClickListener(
-        e -> {
-          if (!machineName.getValue().isBlank()){
-            validateCreateMachine(machineName.getValue());
-            dialog.close();
-          } else {
-            machineName.setInvalid(true);
-          }
-
-        });
-
-    Button btnBack = new Button("Retour");
-    btnBack.addClickListener(
+    Button btnYes = new Button("Oui");
+    btnYes.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+    btnYes.addClickListener(
         e -> {
           dialog.close();
+          this.templateService.deleteTemplate(template);
+          NotificationRed notificationRed =
+              new NotificationRed("Le modèle " + template.getName() + " a été supprimé");
+          notificationRed.open();
+          goHome();
         });
+    Button btnNo = new Button("No");
+    btnNo.addThemeVariants(ButtonVariant.LUMO_ERROR);
+    btnNo.addClickListener(e -> dialog.close());
 
-    machineName.addValueChangeListener(e -> btnValidate.setEnabled(true));
+    HorizontalLayout hrztL = new HorizontalLayout();
+    hrztL.add(btnNo, btnYes);
+    hrztL.setWidthFull();
+    hrztL.setJustifyContentMode(JustifyContentMode.END);
 
-    HorizontalLayout btnLayout = new HorizontalLayout();
-    btnLayout.setJustifyContentMode(JustifyContentMode.END);
-    btnLayout.setWidthFull();
-    btnLayout.add(btnBack, btnValidate);
-
-    VerticalLayout verticalLayout = new VerticalLayout();
-    verticalLayout.add(machineName, btnLayout);
-
-    dialog.add(verticalLayout);
+    dialog.add(text, hrztL);
     dialog.open();
-  }
-
-  private void validateCreateMachine(String machineName) {
-
-      this.machineService.createMachineWithName(machineName);
-      NotificationGreen notificationGreen =
-          new NotificationGreen("La machine " + machineName + " a été créée");
-      notificationGreen.open();
-
-      List<Machine> machineList = this.machineService.getMachines();
-      machine.setItems(machineList);
-      machine.setValue(
-          machineList.stream()
-              .filter(m -> m.getName().equals(machineName))
-              .findFirst()
-              .orElse(null));
-
   }
 
   @Override
@@ -269,6 +312,9 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
         && beforeEnterEvent.getLocation().getSegments().get(1).equals("edit")) {
       this.notificationKey = "template-edited";
       handleEdit();
+    } else {
+      this.template = new Template();
+      handleCreate();
     }
   }
 }

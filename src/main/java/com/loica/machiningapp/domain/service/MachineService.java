@@ -22,4 +22,8 @@ public class MachineService {
     machine.setName(name);
     return this.machineRepository.save(machine);
   }
+
+  public void deleteMachine(Machine machine){
+    this.machineRepository.delete(machine);
+  }
 }

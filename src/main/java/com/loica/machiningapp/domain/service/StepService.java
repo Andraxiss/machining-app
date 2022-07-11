@@ -29,4 +29,8 @@ public class StepService {
   public List<Step> saveAll(List<Step> steps) {
     return this.stepRepository.saveAll(steps);
   }
+
+  public void deleteSteps(List<Step> steps){
+    this.stepRepository.deleteAll(steps);
+  }
 }

@@ -25,4 +25,12 @@ public class ProgramService {
   public List<Program> findAllByMachine(Machine machine) {
     return this.programRepository.findAllByMachine(machine);
   }
+
+  public void deleteProgram(Program program){
+    this.programRepository.delete(program);
+  }
+
+  public void deletePrograms(List<Program> programs){
+    this.programRepository.deleteAll(programs);
+  }
 }

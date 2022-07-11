@@ -28,9 +28,9 @@ const mavenOutputFolderForResourceFiles = path.resolve(__dirname, 'target/classe
 const useClientSideIndexFileForBootstrapping = true;
 const clientSideIndexHTML = './index.html';
 const clientSideIndexEntryPoint = path.resolve(__dirname, 'frontend', 'generated/', 'vaadin.ts');;
-const pwaEnabled = false;
-const offlineEnabled = false;
-const offlinePath = 'offline.html';
+const pwaEnabled = true;
+const offlineEnabled = true;
+const offlinePath = '.';
 const clientServiceWorkerEntryPoint = path.resolve(__dirname, 'target/sw');
 // public path for resources, must match Flow VAADIN_BUILD
 const VAADIN = 'VAADIN';

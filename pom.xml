@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.loica</groupId>
 	<artifactId>machining-app</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>machining-app</name>
 	<description>App to help to create machining programs</description>
 	<properties>

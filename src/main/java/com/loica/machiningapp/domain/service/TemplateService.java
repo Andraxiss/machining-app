@@ -25,4 +25,12 @@ public class TemplateService {
       throw new RuntimeException("Machine must not be null");
     }
   }
+
+  public void deleteTemplate(Template template){
+    this.templateRepository.delete(template);
+  }
+
+  public void deleteTemplated(List<Template> templates){
+    this.templateRepository.deleteAll(templates);
+  }
 }
