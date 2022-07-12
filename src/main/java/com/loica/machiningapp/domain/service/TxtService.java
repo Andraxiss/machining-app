@@ -15,7 +15,7 @@ public class TxtService {
 
   public void createFile(Program program) {
     try {
-      String fileName = program.getProgramNumber() + " - " + program.getName() + ".txt";
+      String fileName = "./programmes/"+program.getProgramNumber() + " - " + program.getName() + ".txt";
       File myObj = new File(fileName);
 
       if (myObj.createNewFile()) {

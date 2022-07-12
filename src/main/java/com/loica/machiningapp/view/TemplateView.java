@@ -293,7 +293,7 @@ public class TemplateView extends VerticalLayout implements BeforeEnterObserver 
           notificationRed.open();
           goHome();
         });
-    Button btnNo = new Button("No");
+    Button btnNo = new Button("Non");
     btnNo.addThemeVariants(ButtonVariant.LUMO_ERROR);
     btnNo.addClickListener(e -> dialog.close());
 

@@ -4,6 +4,9 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+./application.pid
+./machiningDb.mv.db
+./application
 
 ### STS ###
 .apt_generated

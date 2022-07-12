@@ -60,9 +60,11 @@ public class ProgramView extends VerticalLayout implements BeforeEnterObserver {
 
   private Step currentStep;
   private Step draggedStep;
+  private boolean hasNotifRedOpen;
 
   TextField name = new TextField();
   TextField programNumber = new TextField();
+  TextField fileName = new TextField();
   TextArea stepContent;
   TextArea preview;
   Grid<Step> stepGrid;
@@ -117,8 +119,6 @@ public class ProgramView extends VerticalLayout implements BeforeEnterObserver {
     this.programNumber.setWidth(300, Unit.PIXELS);
     this.programNumber.setValue(program.getProgramNumber());
 
-    TextField fileName = new TextField();
-    fileName.setValue(program.getProgramNumber() + " - " + name.getValue() + ".txt");
     fileName.setReadOnly(true);
     fileName.setLabel("Ce programme sera enregistré sous le nom de : ");
     fileName.setWidthFull();
@@ -186,7 +186,17 @@ public class ProgramView extends VerticalLayout implements BeforeEnterObserver {
 
     stepGrid.addDragStartListener(
         e -> {
-          draggedStep = e.getDraggedItems().get(0);
+          if (this.currentStep == null){
+            draggedStep = e.getDraggedItems().get(0);
+          } else {
+            if (!hasNotifRedOpen){
+              NotificationRed notificationRed = new NotificationRed("Veuillez sauvegarder avant d'essayer de déplacer une opération");
+              notificationRed.open();
+              hasNotifRedOpen = true;
+              notificationRed.addOpenedChangeListener(event -> hasNotifRedOpen= notificationRed.isOpened() );
+            }
+
+          }
         });
 
     stepGrid.addDropListener(
@@ -196,7 +206,6 @@ public class ProgramView extends VerticalLayout implements BeforeEnterObserver {
           if (targetStep == null || draggedStep.equals(targetStep)) {
             this.draggedStep = null;
           } else {
-
             gridData.removeItem(draggedStep);
             if (e.getDropLocation() == GridDropLocation.BELOW) {
               gridData.addItemAfter(draggedStep, targetStep);
@@ -226,6 +235,7 @@ public class ProgramView extends VerticalLayout implements BeforeEnterObserver {
       this.stepContent.setReadOnly(true);
     }
 
+    fileName.setValue(program.getProgramNumber() + " - " + program.getName() + ".txt");
     StringBuilder sb = new StringBuilder();
     if (this.program.getSteps() != null) {
       this.program.getSteps().forEach(step -> sb.append(step.getContent() + "\n\n"));
@@ -270,6 +280,7 @@ public class ProgramView extends VerticalLayout implements BeforeEnterObserver {
     this.setCurrentStep(null);
 
     this.program.setName(name.getValue());
+    this.program.setProgramNumber(programNumber.getValue());
     this.program = this.programService.saveProgram(program);
     this.refreshGrid();
     NotificationGreen notificationGreen =
@@ -499,7 +510,7 @@ public class ProgramView extends VerticalLayout implements BeforeEnterObserver {
           List<Program> programs = this.programService.findAllByMachine(machineFinder.getValue());
           programToEdit.setEnabled(true);
           programToEdit.setItems(programs);
-          programToEdit.setItemLabelGenerator(Program::getName);
+          programToEdit.setItemLabelGenerator(p -> p.getProgramNumber() + " - " + p.getName());
           programToEdit.setPlaceholder("Sélectionner la programme à éditer");
         });
 
